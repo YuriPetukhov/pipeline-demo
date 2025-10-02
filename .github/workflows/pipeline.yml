@@ -1,8 +1,10 @@
 name: demo-pipeline
+
 on:
   push:
     branches: [ "**" ]
   workflow_dispatch:
+
 env:
   LOG_FILE_NAME: log.txt
 
@@ -19,14 +21,17 @@ jobs:
           wc -c "$LOG_FILE_NAME" | awk '{print "size(bytes):",$1}'
           cat -n "$LOG_FILE_NAME"
       - uses: actions/upload-artifact@v4
-        with: { name: log, path: ${{ env.LOG_FILE_NAME }} }
+        with:
+          name: log
+          path: ${{ env.LOG_FILE_NAME }}
 
   test_job1:
     runs-on: ubuntu-latest
     needs: [ build_job ]
     steps:
       - uses: actions/download-artifact@v4
-        with: { name: log }
+        with:
+          name: log
       - run: |
           test -f "$LOG_FILE_NAME"
           echo '--- Test #1 Started ---'   | tee -a "$LOG_FILE_NAME"
@@ -35,14 +40,17 @@ jobs:
           wc -c "$LOG_FILE_NAME" | awk '{print "size(bytes):",$1}'
           cat -n "$LOG_FILE_NAME"
       - uses: actions/upload-artifact@v4
-        with: { name: log, path: ${{ env.LOG_FILE_NAME }} }
+        with:
+          name: log
+          path: ${{ env.LOG_FILE_NAME }}
 
   test_job2:
     runs-on: ubuntu-latest
     needs: [ test_job1 ]
     steps:
       - uses: actions/download-artifact@v4
-        with: { name: log }
+        with:
+          name: log
       - run: |
           echo '--- Test #2 Started ---'   | tee -a "$LOG_FILE_NAME"
           echo 'Integration checks...'     | tee -a "$LOG_FILE_NAME"
@@ -50,14 +58,17 @@ jobs:
           wc -c "$LOG_FILE_NAME" | awk '{print "size(bytes):",$1}'
           cat -n "$LOG_FILE_NAME"
       - uses: actions/upload-artifact@v4
-        with: { name: log, path: ${{ env.LOG_FILE_NAME }} }
+        with:
+          name: log
+          path: ${{ env.LOG_FILE_NAME }}
 
   test_job3:
     runs-on: ubuntu-latest
     needs: [ test_job2 ]
     steps:
       - uses: actions/download-artifact@v4
-        with: { name: log }
+        with:
+          name: log
       - run: |
           echo '--- Test #3 Started ---'   | tee -a "$LOG_FILE_NAME"
           echo 'Smoke/E2E scenario...'     | tee -a "$LOG_FILE_NAME"
@@ -65,14 +76,17 @@ jobs:
           wc -c "$LOG_FILE_NAME" | awk '{print "size(bytes):",$1}'
           cat -n "$LOG_FILE_NAME"
       - uses: actions/upload-artifact@v4
-        with: { name: log, path: ${{ env.LOG_FILE_NAME }} }
+        with:
+          name: log
+          path: ${{ env.LOG_FILE_NAME }}
 
   deploy_to_dev_job:
     runs-on: ubuntu-latest
     needs: [ test_job3 ]
     steps:
       - uses: actions/download-artifact@v4
-        with: { name: log }
+        with:
+          name: log
       - run: |
           echo '---Deploy to DEV Started---'   | tee -a "$LOG_FILE_NAME"
           echo 'Deploying to DEV...'           | tee -a "$LOG_FILE_NAME"
@@ -81,21 +95,23 @@ jobs:
           wc -c "$LOG_FILE_NAME" | awk '{print "size(bytes):",$1}'
           cat -n "$LOG_FILE_NAME"
       - uses: actions/upload-artifact@v4
-        with: { name: log, path: ${{ env.LOG_FILE_NAME }} }
+        with:
+          name: log
+          path: ${{ env.LOG_FILE_NAME }}
 
   deploy_to_prd_job:
     runs-on: ubuntu-latest
     needs: [ deploy_to_dev_job ]
-    # ограничиваем «прод» веткой main и ручным одобрением через защищенную среду
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'    # только ветка main
     environment:
-      name: production   # сделаем её "Protected", чтобы требовалось ручное подтверждение
+      name: production
     concurrency:
-      group: production  # блокирует параллельные прод-деплои
+      group: production                     # блокирует параллельные прод-деплои
       cancel-in-progress: false
     steps:
       - uses: actions/download-artifact@v4
-        with: { name: log }
+        with:
+          name: log
       - run: |
           echo '---Deploy to PROD Started---'   | tee -a "$LOG_FILE_NAME"
           echo 'Deploying to PROD...'           | tee -a "$LOG_FILE_NAME"
